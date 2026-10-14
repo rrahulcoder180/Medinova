@@ -1,0 +1,34 @@
+# Java compiled files
+*.class
+*.jar
+*.war
+
+# Maven build output
+backend/target/
+target/
+
+# Local H2 database files
+backend/data/
+*.mv.db
+*.trace.db
+*.lock.db
+*.mv-MSI.db
+
+# Local Maven installation
+apache-maven-3.9.16/
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+# Android Gradle generated files
+android/.gradle/
+android/build/
+android/app/build/
+
+# Local Android/Gradle files
+android/local.properties

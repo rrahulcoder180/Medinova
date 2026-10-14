@@ -1,0 +1,307 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medinova - Emergency Pharmacy</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-cross">✚</span> Medinova
+    </div>
+
+    <nav>
+      <button type="button" onclick="scrollToSection('home')">Home</button>
+      <button type="button" onclick="scrollToSection('medicines')">Medicines</button>
+      <button type="button" onclick="showOrders()">Orders</button>
+      <button type="button" onclick="showSOS()">SOS</button>
+    </nav>
+
+    <button type="button" class="cart-button" onclick="toggleCart(true)">
+      🛒 Cart (<span id="cart-count">0</span>)
+    </button>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="home" class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">YOUR TRUSTED ONLINE PHARMACY</p>
+
+        <h1>
+          Healthcare when<br>
+          <span>you need it.</span>
+        </h1>
+
+        <p>
+          Order medicines quickly and request emergency assistance
+          from one simple app.
+        </p>
+
+        <div class="hero-buttons">
+          <button
+            type="button"
+            class="primary"
+            onclick="scrollToSection('medicines')">
+            Order Medicines
+          </button>
+
+          <button
+            type="button"
+            class="sos-outline"
+            onclick="showSOS()">
+            🚨 Emergency SOS
+          </button>
+        </div>
+
+        <div class="trust">
+          <span>✓ Verified medicines</span>
+          <span>✓ Fast delivery</span>
+          <span>✓ Easy payment</span>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="pill-art">💊</div>
+        <h3>Medinova Emergency</h3>
+        <p>Rapid medicine delivery for urgent situations.</p>
+        <div class="timer">5–10 min</div>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="categories">
+      <div>
+        <span>💊</span>
+        <b>Medicines</b>
+        <small>Daily needs</small>
+      </div>
+
+      <div>
+        <span>🩹</span>
+        <b>First Aid</b>
+        <small>Emergency care</small>
+      </div>
+
+      <div>
+        <span>👨‍⚕️</span>
+        <b>Doctor</b>
+        <small>Consultation</small>
+      </div>
+
+      <div>
+        <span>🚑</span>
+        <b>Emergency</b>
+        <small>Get help</small>
+      </div>
+    </section>
+
+    <!-- MEDICINES -->
+    <section id="medicines" class="section">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">PHARMACY</p>
+          <h2>Popular medicines</h2>
+        </div>
+
+        <input
+          id="search-input"
+          type="search"
+          placeholder="🔍 Search medicine"
+          oninput="filterMedicines()"
+          aria-label="Search medicines">
+      </div>
+
+      <select
+        id="category-filter"
+        onchange="filterMedicines()"
+        aria-label="Filter by category">
+        <option value="all">All categories</option>
+        <option value="medicine">Medicines</option>
+        <option value="vitamin">Vitamins</option>
+        <option value="firstaid">First Aid</option>
+      </select>
+
+      <p id="medicine-status" role="status">Loading medicines...</p>
+
+      <!-- Medicine cards are loaded from the Spring Boot API -->
+      <div id="medicine-grid" class="medicine-grid"></div>
+    </section>
+
+    <!-- EMERGENCY BANNER -->
+    <section class="emergency-banner">
+      <div>
+        <p class="eyebrow">MEDINOVA EMERGENCY</p>
+        <h2>Are you in an emergency?</h2>
+        <p>Press SOS to start an emergency assistance request.</p>
+      </div>
+
+      <button
+        type="button"
+        class="sos-big"
+        onclick="showSOS()">
+        SOS
+      </button>
+    </section>
+  </main>
+
+  <!-- CART BACKDROP -->
+  <div
+    id="cart-backdrop"
+    class="backdrop hidden"
+    onclick="toggleCart(false)">
+  </div>
+
+  <!-- CART DRAWER -->
+  <aside id="cart-drawer" class="drawer hidden">
+    <div class="drawer-head">
+      <h2>Your Cart</h2>
+      <button type="button" onclick="toggleCart(false)" aria-label="Close cart">
+        ✕
+      </button>
+    </div>
+
+    <div id="cart-items"></div>
+
+    <div class="cart-total">
+      <span>Total</span>
+      <b id="cart-total">₹0.00</b>
+    </div>
+
+    <button
+      type="button"
+      class="primary full"
+      onclick="openCheckout()">
+      Continue to Checkout
+    </button>
+  </aside>
+
+  <!-- CHECKOUT MODAL -->
+  <div
+    id="checkout-modal"
+    class="modal hidden"
+    onclick="closeModalOnBackdrop(event, 'checkout-modal')">
+
+    <div class="modal-card">
+      <button
+        type="button"
+        class="close"
+        onclick="closeModal('checkout-modal')"
+        aria-label="Close checkout">
+        ✕
+      </button>
+
+      <p class="eyebrow">CHECKOUT</p>
+      <h2>Complete your order</h2>
+
+      <form id="checkout-form">
+        <label for="customer-name">Your name</label>
+        <input
+          id="customer-name"
+          name="customerName"
+          type="text"
+          placeholder="Enter your name"
+          required>
+
+        <label for="customer-address">Delivery address</label>
+        <textarea
+          id="customer-address"
+          name="address"
+          placeholder="Enter your full delivery address"
+          required></textarea>
+
+        <label for="payment-method">Payment method</label>
+        <select id="payment-method" name="paymentMethod" required>
+          <option value="Cash on Delivery">Cash on Delivery</option>
+          <option value="UPI">UPI</option>
+          <option value="Card">Card</option>
+        </select>
+
+        <button type="submit" class="primary full">
+          Place Order
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMERGENCY SOS MODAL -->
+  <div
+    id="sos-modal"
+    class="modal hidden"
+    onclick="closeModalOnBackdrop(event, 'sos-modal')">
+
+    <div class="modal-card emergency-card">
+      <button
+        type="button"
+        class="close"
+        onclick="closeModal('sos-modal')"
+        aria-label="Close emergency window">
+        ✕
+      </button>
+
+      <div class="sos-circle">SOS</div>
+      <h2>Are you in an emergency?</h2>
+
+      <p>
+        This demonstration creates an emergency assistance request
+        within the app. It does not contact real emergency services.
+      </p>
+
+      <div class="address-box">
+        📍 Emergency assistance demonstration
+      </div>
+
+      <button
+        type="button"
+        class="sos-big full"
+        onclick="showToast('Demo emergency request selected.')">
+        Request Emergency Help
+      </button>
+    </div>
+  </div>
+
+  <!-- ORDERS MODAL -->
+  <div
+    id="orders-modal"
+    class="modal hidden"
+    onclick="closeModalOnBackdrop(event, 'orders-modal')">
+
+    <div class="modal-card">
+      <button
+        type="button"
+        class="close"
+        onclick="closeModal('orders-modal')"
+        aria-label="Close orders">
+        ✕
+      </button>
+
+      <p class="eyebrow">YOUR ACCOUNT</p>
+      <h2>Your Orders</h2>
+
+      <div id="orders-list">
+        Loading orders...
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST MESSAGE -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- FLOATING CART: ONE BUTTON ONLY -->
+  <button
+    type="button"
+    class="floating-cart"
+    onclick="toggleCart(true)"
+    aria-label="Open shopping cart">
+    🛒 <span id="floating-cart-count">0</span>
+  </button>
+
+  <!-- Load JavaScript only once -->
+  <script src="/app.js"></script>
+</body>
+</html>
