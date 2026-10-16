@@ -1,4 +1,41 @@
 
+let csrfToken = null;
+
+
+async function refreshCsrfToken() {
+  const response = await fetch("/api/csrf", {
+    credentials: "same-origin"
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not obtain security token.");
+  }
+
+  const data = await response.json();
+  csrfToken = data.token;
+  return csrfToken;
+}
+
+
+async function secureFetch(url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+
+  if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+    if (!csrfToken) {
+      await refreshCsrfToken();
+    }
+
+    options.headers = {
+      ...(options.headers || {}),
+     "X-XSRF-TOKEN": csrfToken
+    };
+  }
+
+  options.credentials = "same-origin";
+
+  return fetch(url, options);
+}
+
 let medicines = [];
 let cart = [];
 let toastTimer;
@@ -465,12 +502,15 @@ async function placeOrder(event) {
   const submitButton = form.querySelector('button[type="submit"]');
 
   // Keep the payment value compatible with the existing HTML.
-  const payload = {
-    customerName,
-    address,
-    paymentMethod: paymentInput.value,
-    total: Number(getCartTotal().toFixed(2))
-  };
+const payload = {
+  customerName,
+  address,
+  paymentMethod: paymentInput.value,
+  items: cart.map(item => ({
+    medicineId: Number(getMedicineId(item.medicine)),
+    quantity: item.quantity
+  }))
+};
 
   if (submitButton) {
     submitButton.disabled = true;
@@ -478,20 +518,20 @@ async function placeOrder(event) {
   }
 
   try {
-    const response = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+   const response = await secureFetch("/api/orders", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(payload)
+});
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        errorText || "Order request failed: " + response.status
-      );
-    }
+if (!response.ok) {
+  const errorText = await response.text();
+  throw new Error(
+    errorText || "Order request failed: " + response.status
+  );
+}
 
     // Some APIs return JSON, while others return an empty response.
     const responseText = await response.text();
@@ -541,11 +581,16 @@ async function showOrders() {
   list.textContent = "Loading orders...";
 
   try {
-    const response = await fetch("/api/orders");
+    const response = await secureFetch("/api/orders");
 
-    if (!response.ok) {
-      throw new Error("Could not retrieve orders: " + response.status);
-    }
+if (response.status === 401 || response.status === 403) {
+  list.textContent = "Please log in to view your orders.";
+  return;
+}
+
+if (!response.ok) {
+  throw new Error("Could not retrieve orders: " + response.status);
+}
 
     const orders = await response.json();
 
@@ -588,6 +633,182 @@ async function showOrders() {
       "Could not load orders. Check GET /api/orders.";
   }
 }
+
+let authMode = "login";
+let currentUser = null;
+
+async function refreshAuthState() {
+  try {
+    const response = await fetch("/api/auth/me", {
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      currentUser = null;
+    } else {
+      const data = await response.json();
+      currentUser = data.authenticated ? data : null;
+    }
+  } catch (error) {
+    console.error("Could not check login status:", error);
+    currentUser = null;
+  }
+
+  const accountButton = document.getElementById("account-button");
+  const logoutButton = document.getElementById("auth-logout");
+  const switchButton = document.getElementById("auth-switch");
+  const switchText = document.getElementById("auth-switch-text");
+  const submitButton = document.getElementById("auth-submit");
+  const nameField = document.getElementById("auth-name-field");
+  const emailField = document.getElementById("auth-email").closest(".auth-field");
+  const passwordField = document.getElementById("auth-password").closest(".auth-field");
+
+  if (currentUser) {
+    accountButton.textContent = "My Account";
+    logoutButton.hidden = false;
+    switchButton.hidden = true;
+    switchText.hidden = true;
+    submitButton.hidden = true;
+    nameField.hidden = true;
+    emailField.hidden = true;
+    passwordField.hidden = true;
+
+    document.getElementById("auth-title").textContent =
+      "Welcome, " + currentUser.fullName;
+    document.getElementById("auth-description").textContent =
+      currentUser.email;
+  } else {
+    accountButton.textContent = "Login / Register";
+    logoutButton.hidden = true;
+    switchButton.hidden = false;
+    switchText.hidden = false;
+    submitButton.hidden = false;
+    emailField.hidden = false;
+    passwordField.hidden = false;
+
+    updateAuthModal();
+  }
+}
+async function showAuthModal() {
+  authMode = "login";
+  updateAuthModal();
+
+  await refreshAuthState();
+
+  document.getElementById("auth-modal").classList.add("visible");
+}
+
+
+function toggleAuthMode() {
+  authMode = authMode === "login" ? "register" : "login";
+  updateAuthModal();
+}
+
+function updateAuthModal() {
+  const registering = authMode === "register";
+
+  document.getElementById("auth-title").textContent =
+    registering ? "Create account" : "Login";
+
+  document.getElementById("auth-description").textContent =
+    registering ? "Register for your Medinova account." : "Sign in to continue.";
+
+  document.getElementById("auth-name-field").hidden = !registering;
+  document.getElementById("auth-name").required = registering;
+
+  document.getElementById("auth-password").autocomplete =
+    registering ? "new-password" : "current-password";
+
+  document.getElementById("auth-submit").textContent =
+    registering ? "Register" : "Login";
+
+  document.getElementById("auth-switch-text").textContent =
+    registering ? "Already have an account?" : "Don't have an account?";
+
+  document.getElementById("auth-switch").textContent =
+    registering ? "Login instead" : "Register instead";
+}
+
+async function logout() {
+  try {
+   const response = await secureFetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      throw new Error("Logout failed: " + response.status);
+    }
+
+    closeModal("auth-modal");
+    showToast("Logged out successfully.");
+  } catch (error) {
+    console.error("Logout error:", error);
+    showToast("Logout failed. Please try again.");
+  }
+}
+
+const authForm = document.getElementById("auth-form");
+
+if (authForm) {
+  authForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const name = document.getElementById("auth-name").value.trim();
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+    const submitButton = document.getElementById("auth-submit");
+
+    if (authMode === "register" && !name) {
+      showToast("Please enter your full name.");
+      return;
+    }
+
+    submitButton.disabled = true;
+
+    try {
+      const endpoint = authMode === "register"
+        ? "/api/auth/register"
+        : "/api/auth/login";
+
+      const payload = authMode === "register"
+        ? { fullName: name, email, password }
+        : { email, password };
+
+      const response = await secureFetch(endpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Authentication failed.");
+      }
+
+      if (authMode === "register") {
+        showToast("Account created. Please log in.");
+        authMode = "login";
+        authForm.reset();
+        updateAuthModal();
+      } else {
+        closeModal("auth-modal");
+        authForm.reset();
+        showToast("Login successful.");
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+      showToast(error.message || "Could not connect to the backend.");
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+}
+
+updateAuthModal();
+
 
 // TOAST MESSAGE
 function showToast(message) {

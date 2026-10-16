@@ -1,7 +1,8 @@
-
 package com.medinova.order;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.medinova.auth.AppUser;
 
 @Entity
 @Table(name = "CUSTOMER_ORDERS")
@@ -20,6 +21,11 @@ public class CustomerOrder {
     private double total;
     private String status;
     private String message;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    private AppUser user;
 
     public CustomerOrder() {
     }
@@ -83,5 +89,12 @@ public class CustomerOrder {
     public void setMessage(String message) {
         this.message = message;
     }
-}
 
+    public AppUser getUser() {
+        return user;
+    }
+
+    public void setUser(AppUser user) {
+        this.user = user;
+    }
+}

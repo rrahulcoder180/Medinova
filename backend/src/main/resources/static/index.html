@@ -25,7 +25,9 @@
     <button onclick="showOrders()">My Orders</button>
     <a href="#support">SOS Support</a>
   </nav>
-
+  <button class="cart-button" id="account-button" onclick="showAuthModal()">
+    Login / Register
+  </button>
   <button class="cart-button" onclick="toggleCart(true)">
     🛒 Cart <span id="cart-count">0</span>
   </button>
@@ -170,6 +172,64 @@
     <button class="primary-button full-button" onclick="closeModal('sos-modal')">I understand</button>
   </section>
 </div>
+
+<div id="auth-modal" class="modal-backdrop" onclick="closeModalOnBackdrop(event, 'auth-modal')">
+  <section class="modal">
+    <button class="close-button modal-close" onclick="closeModal('auth-modal')" aria-label="Close">×</button>
+
+    <span class="eyebrow">YOUR MEDINOVA ACCOUNT</span>
+    <h2 id="auth-title">Login</h2>
+    <p class="modal-description" id="auth-description">Sign in to continue.</p>
+  <form id="auth-form">
+  <div class="auth-field" id="auth-name-field" hidden>
+    <label for="auth-name">Full name</label>
+    <input
+      id="auth-name"
+      name="fullName"
+      type="text"
+      maxlength="100"
+      autocomplete="name"
+    >
+  </div>
+
+  <div class="auth-field">
+    <label for="auth-email">Email</label>
+    <input
+      id="auth-email"
+      name="email"
+      type="email"
+      required
+      maxlength="254"
+      autocomplete="email"
+    >
+  </div>
+
+  <div class="auth-field">
+    <label for="auth-password">Password</label>
+    <input
+      id="auth-password"
+      name="password"
+      type="password"
+      required
+      minlength="8"
+      maxlength="72"
+      autocomplete="current-password"
+    >
+  </div>
+
+  <button
+    class="primary-button full-button"
+    id="auth-submit"
+    type="submit"
+  >Login</button>
+</form>
+
+    <p id="auth-switch-text">Don't have an account?</p>
+    <button class="secondary-button full-button" id="auth-switch" type="button" onclick="toggleAuthMode()">Register instead</button>
+    <button class="secondary-button full-button" id="auth-logout" type="button" onclick="logout()" hidden>Logout</button>
+  </section>
+</div>
+
 
 <div id="toast" class="toast" role="status"></div>
 <script src="app.js"></script>
