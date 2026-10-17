@@ -91,8 +91,13 @@ public ResponseEntity<?> login(
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
 
-        httpRequest.changeSessionId();
-HttpSession session = httpRequest.getSession(true);
+                HttpSession oldSession = httpRequest.getSession(false);
+
+        if (oldSession != null) {
+            oldSession.invalidate();
+        }
+
+        HttpSession session = httpRequest.getSession(true);
         session.setAttribute(
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
             context
